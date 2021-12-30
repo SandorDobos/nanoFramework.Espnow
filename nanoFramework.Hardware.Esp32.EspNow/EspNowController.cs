@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 
+using nanoFramework.Runtime.Events;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -13,6 +14,14 @@ namespace nanoFramework.Hardware.Esp32.EspNow
     /// </summary>
     public class EspNowController : IDisposable
     {
+        // keep in sync with nf-interpreter:src/HAL/Include/nanoHAL_v2.h
+        private const int EVENT_ESP32_ESPNOW = 140;
+
+        /// <summary>
+        /// Broadcast peer MAC address.
+        /// </summary>
+        public static readonly byte[] BROADCASTMAC = new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
         /// <summary>
         /// DataSent event handler type definition.
         /// </summary>
@@ -33,30 +42,38 @@ namespace nanoFramework.Hardware.Esp32.EspNow
         /// </summary>
         public event DataReceivedEventHandler DataReceived;
 
-
         private bool isDisposed;
+        private EspNowEventHandler eventHandler;
 
         /// <summary>
         /// Controller.
         /// </summary>
         public EspNowController()
         {
-            NativeEspNowInit();
+            // Add a native event processor.
+            eventHandler = new EspNowEventHandler(this);
+            EventSink.AddEventProcessor((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
+            EventSink.AddEventListener((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
 
-            NativeEspNowRegisterRecvCb(RecvCb);
-            NativeEspNowRegisterSendCb(SendCb);
+            var nret = NativeInitialize();
+            if (nret != 0)
+            {
+                throw new EspNowException(nret);
+            }
         }
 
         /// <summary>
         /// Add peer to which data will be sent.
         /// </summary>
-        /// <param name="peerMac">MAC address of peer. Use ff:ff:ff:ff:ff:ff for broadcasting.</param>
+        /// <param name="peerMac">MAC address of peer. Use BROADCASTMAC for broadcasting.</param>
         /// <param name="channel">WiFi channel to be used.</param>
-        /// <returns>esp_err_t values, see esp_now.h</returns>
-        public int AddPeer(byte[] peerMac, byte channel)
+        public void AddPeer(byte[] peerMac, byte channel)
         {
-            int ret = NativeEspNowAddPeer(peerMac, channel);
-            return ret;
+            var nret = NativeEspNowAddPeer(peerMac, channel);
+            if (nret != 0)
+            {
+                throw new EspNowException(nret);
+            }
         }
 
         /// <summary>
@@ -65,14 +82,16 @@ namespace nanoFramework.Hardware.Esp32.EspNow
         /// <param name="peerMac">MAC address of already added peer.</param>
         /// <param name="data">Data to be sent.</param>
         /// <param name="dataLen">Length of data.</param>
-        /// <returns>esp_err_t values, see esp_now.h</returns>
-        public int Send(byte[] peerMac, byte[] data, int dataLen)
+        public void Send(byte[] peerMac, byte[] data, int dataLen)
         {
-            int ret = NativeEspNowSend(peerMac, data, dataLen);
-            return ret;
+            var nret = NativeEspNowSend(peerMac, data, dataLen);
+            if (nret != 0)
+            {
+                throw new EspNowException(nret);
+            }
         }
 
-        private void RecvCb(byte[] peerMac, byte[] data, int dataLen)
+        private void OnDataReceived(byte[] peerMac, byte[] data, int dataLen)
         {
             var eh = this.DataReceived;
             if (eh != null)
@@ -81,7 +100,7 @@ namespace nanoFramework.Hardware.Esp32.EspNow
             }
         }
 
-        private void SendCb(byte[] peerMac, int sendStatus)
+        private void OnDataSent(byte[] peerMac, int sendStatus)
         {
             var eh = this.DataSent;
             if (eh != null)
@@ -100,10 +119,16 @@ namespace nanoFramework.Hardware.Esp32.EspNow
             {
                 if (isDisposing)
                 {
-                    NativeEspNowUnregisterRecvCb();
-                    NativeEspNowUnregisterSendCb();
-                    NativeEspNowDeinit();
+                    if (eventHandler != null)
+                    {
+                        EventSink.RemoveEventProcessor((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
+                    }
                 }
+
+                eventHandler = null;
+
+                NativeDispose(isDisposing);
+
                 isDisposed = true;
             }
         }
@@ -125,36 +150,119 @@ namespace nanoFramework.Hardware.Esp32.EspNow
             GC.SuppressFinalize(this);
         }
 
-        private delegate void RegisterRecvDelegate(byte[] peerMac, byte[] data, int dataLen);
-        private delegate void RegisterSendDelegate(byte[] peerMac, int sendStatus);
+
+        internal class EspNowEventHandler : IEventProcessor, IEventListener
+        {
+            // keep in sync with nf-interpreter:targets/ESP32/_nanoCLR/nanoFramework.Hardware.Esp32.EspNow/nanoFramework_hardware_esp32_espnow_native.h
+            private const int EVENT_ESP32_ESPNOW_DATASENT = 1;
+            private const int EVENT_ESP32_ESPNOW_DATARECV = 2;
+
+            private EspNowController controllerInstance;
+
+            public EspNowEventHandler(EspNowController controllerInstance)
+            {
+                this.controllerInstance = controllerInstance;
+            }
+
+            public void InitializeForEventSource()
+            {
+                // no op
+            }
+
+            public bool OnEvent(BaseEvent ev)
+            {
+                bool ret = false;
+
+                var dataRecvEvent = ev as DataRecvEventInternal;
+                if (dataRecvEvent != null)
+                {
+                    controllerInstance.OnDataReceived(dataRecvEvent.PeerMac, dataRecvEvent.Data, dataRecvEvent.DataLen);
+                    ret = true;
+                }
+                else
+                {
+                    var dataSentEvent = ev as DataSentEventInternal;
+                    if (dataSentEvent != null)
+                    {
+                        controllerInstance.OnDataSent(dataSentEvent.PeerMac, dataSentEvent.Status);
+                        ret = true;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine(ev.GetType().Name);
+                    }
+                }
+
+                return ret;
+            }
+
+            /// <summary>
+            /// Native event processor
+            /// </summary>
+            /// <param name="data1"></param>
+            /// <param name="data2"></param>
+            /// <param name="time"></param>
+            /// <returns></returns>
+            [MethodImplAttribute(MethodImplOptions.InternalCall)]
+            extern public BaseEvent ProcessEvent(uint data1, uint data2, DateTime time);
+        }
+
+        internal class DataSentEventInternal : BaseEvent
+        {
+            // these fields are set on native side
+#pragma warning disable 0649
+            public byte[] PeerMac;
+            public int Status;
+#pragma warning restore 0649
+
+        }
+
+        internal class DataRecvEventInternal : BaseEvent
+        {
+            // these fields are set on native side
+#pragma warning disable 0649
+            public byte[] PeerMac;
+            public byte[] Data;
+            public int DataLen;
+#pragma warning restore 0649
+        }
+
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_init()
-        private extern int NativeEspNowInit();
+        private extern int NativeInitialize();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_deinit()
-        private extern int NativeEspNowDeinit();
+        private extern void NativeDispose(bool isDisposing);
+
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_init()
+        //private extern int NativeEspNowInit();
+
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_deinit()
+        //private extern int NativeEspNowDeinit();
 
         //[MethodImpl(MethodImplOptions.InternalCall)]
         //// esp_err_t esp_now_get_version(uint32_t *version)
         //private extern int NativeEspNowGetVersion(ref int version);
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_register_recv_cb(esp_now_recv_cb_t cb)
-        private extern int NativeEspNowRegisterRecvCb(RegisterRecvDelegate cb);
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_register_recv_cb(esp_now_recv_cb_t cb)
+        //private extern int NativeEspNowRegisterRecvCb(RegisterRecvDelegate cb);
+        //private delegate void RegisterRecvDelegate(byte[] peerMac, byte[] data, int dataLen);
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_unregister_recv_cb(void)
-        private extern int NativeEspNowUnregisterRecvCb();
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_unregister_recv_cb(void)
+        //private extern int NativeEspNowUnregisterRecvCb();
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_register_send_cb(esp_now_send_cb_t cb)
-        private extern int NativeEspNowRegisterSendCb(RegisterSendDelegate cb);
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_register_send_cb(esp_now_send_cb_t cb)
+        //private extern int NativeEspNowRegisterSendCb(RegisterSendDelegate cb);
+        //private delegate void RegisterSendDelegate(byte[] peerMac, int sendStatus);
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        // esp_err_t esp_now_unregister_send_cb(void)
-        private extern int NativeEspNowUnregisterSendCb();
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //// esp_err_t esp_now_unregister_send_cb(void)
+        //private extern int NativeEspNowUnregisterSendCb();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         // esp_err_t esp_now_send(const uint8_t *peer_addr, const uint8_t *data, size_t len)
