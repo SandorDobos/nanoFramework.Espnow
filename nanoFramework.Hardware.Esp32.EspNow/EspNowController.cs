@@ -187,10 +187,6 @@ namespace nanoFramework.Hardware.Esp32.EspNow
                         controllerInstance.OnDataSent(dataSentEvent.PeerMac, dataSentEvent.Status);
                         ret = true;
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine(ev.GetType().Name);
-                    }
                 }
 
                 return ret;
@@ -206,27 +202,6 @@ namespace nanoFramework.Hardware.Esp32.EspNow
             [MethodImplAttribute(MethodImplOptions.InternalCall)]
             extern public BaseEvent ProcessEvent(uint data1, uint data2, DateTime time);
         }
-
-        internal class DataSentEventInternal : BaseEvent
-        {
-            // these fields are set on native side
-#pragma warning disable 0649
-            public byte[] PeerMac;
-            public int Status;
-#pragma warning restore 0649
-
-        }
-
-        internal class DataRecvEventInternal : BaseEvent
-        {
-            // these fields are set on native side
-#pragma warning disable 0649
-            public byte[] PeerMac;
-            public byte[] Data;
-            public int DataLen;
-#pragma warning restore 0649
-        }
-
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private extern int NativeInitialize();
@@ -290,4 +265,25 @@ namespace nanoFramework.Hardware.Esp32.EspNow
         // esp_err_t esp_now_set_wake_window(uint16_t window)
 
     }
+
+    internal class DataSentEventInternal : BaseEvent
+    {
+        // these fields are set on native side
+#pragma warning disable 0649
+        public byte[] PeerMac;
+        public int Status;
+#pragma warning restore 0649
+
+    }
+
+    internal class DataRecvEventInternal : BaseEvent
+    {
+        // these fields are set on native side
+#pragma warning disable 0649
+        public byte[] PeerMac;
+        public byte[] Data;
+        public int DataLen;
+#pragma warning restore 0649
+    }
+
 }
