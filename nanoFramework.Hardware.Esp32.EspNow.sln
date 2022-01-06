@@ -7,6 +7,7 @@ Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "nanoFramework.Hardware.Esp3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{175610B3-9004-4798-B7B7-B23E5CED4215}"
 	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
 		version.json = version.json
 	EndProjectSection
 EndProject
