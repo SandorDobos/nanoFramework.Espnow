@@ -15,7 +15,7 @@ namespace nanoFramework.Espnow
     public class EspNowController : IDisposable
     {
         // keep in sync with nf-interpreter:src/HAL/Include/nanoHAL_v2.h
-        private const int EVENT_ESP32_ESPNOW = 140;
+        private const int EVENT_ESPNOW = 140;
 
         /// <summary>
         /// Broadcast peer MAC address.
@@ -52,8 +52,8 @@ namespace nanoFramework.Espnow
         {
             // Add a native event processor.
             eventHandler = new EspNowEventHandler(this);
-            EventSink.AddEventProcessor((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
-            EventSink.AddEventListener((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
+            EventSink.AddEventProcessor((EventCategory)EVENT_ESPNOW, eventHandler);
+            EventSink.AddEventListener((EventCategory)EVENT_ESPNOW, eventHandler);
 
             var nret = NativeInitialize();
             if (nret != 0)
@@ -121,7 +121,7 @@ namespace nanoFramework.Espnow
                 {
                     if (eventHandler != null)
                     {
-                        EventSink.RemoveEventProcessor((EventCategory)EVENT_ESP32_ESPNOW, eventHandler);
+                        EventSink.RemoveEventProcessor((EventCategory)EVENT_ESPNOW, eventHandler);
                     }
                 }
 
@@ -154,8 +154,8 @@ namespace nanoFramework.Espnow
         internal class EspNowEventHandler : IEventProcessor, IEventListener
         {
             // keep in sync with nf-interpreter:targets/ESP32/_nanoCLR/nanoFramework.Espnow/nanoFramework_espnow_native.h
-            private const int EVENT_ESP32_ESPNOW_DATASENT = 1;
-            private const int EVENT_ESP32_ESPNOW_DATARECV = 2;
+            private const int EVENT_ESPNOW_DATASENT = 1;
+            private const int EVENT_ESPNOW_DATARECV = 2;
 
             private EspNowController controllerInstance;
 
