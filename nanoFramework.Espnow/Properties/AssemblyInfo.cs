@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("nanoFramework.Hardware.Esp32.EspNow")]
+[assembly: AssemblyTitle("nanoFramework.Espnow")]
 [assembly: AssemblyCompany("nanoFramework Contributors")]
-[assembly: AssemblyProduct("nanoFramework.Hardware.Esp32.EspNow")]
+[assembly: AssemblyProduct("nanoFramework.Espnow")]
 [assembly: AssemblyCopyright("Copyright (c) .NET Foundation and Contributors")]
 
 ////////////////////////////////////////////////////////////////

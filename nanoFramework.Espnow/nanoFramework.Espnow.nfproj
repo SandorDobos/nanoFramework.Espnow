@@ -14,16 +14,16 @@
     <FileAlignment>512</FileAlignment>
     <RootNamespace>
     </RootNamespace>
-    <AssemblyName>nanoFramework.Hardware.Esp32.EspNow</AssemblyName>
+    <AssemblyName>nanoFramework.Espnow</AssemblyName>
     <TargetFrameworkVersion>v1.0</TargetFrameworkVersion>
     <NF_IsCoreLibrary>True</NF_IsCoreLibrary>
-    <DocumentationFile>bin\$(Configuration)\nanoFramework.Hardware.Esp32.EspNow.xml</DocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\nanoFramework.Espnow.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <!-- override default options for MetaDataProcessor -->
     <NF_GenerateStubsDirectory>bin\$(Configuration)\Stubs</NF_GenerateStubsDirectory>
-    <NF_GenerateSkeletonProjectName>nanoFramework_hardware_esp32_espnow_native</NF_GenerateSkeletonProjectName>
-    <Name>nanoFramework.Hardware.Esp32.EspNow</Name>
+    <NF_GenerateSkeletonProjectName>nanoFramework_espnow_native</NF_GenerateSkeletonProjectName>
+    <Name>nanoFramework.Espnow</Name>
   </PropertyGroup>
   <ItemGroup>
     <NFMDP_PE_ExcludeClassByName Include="ThisAssembly">

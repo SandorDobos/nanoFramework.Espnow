@@ -7,7 +7,7 @@ using nanoFramework.Runtime.Events;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace nanoFramework.Hardware.Esp32.EspNow
+namespace nanoFramework.Espnow
 {
     /// <summary>
     /// ESP-NOW controller class.
@@ -153,7 +153,7 @@ namespace nanoFramework.Hardware.Esp32.EspNow
 
         internal class EspNowEventHandler : IEventProcessor, IEventListener
         {
-            // keep in sync with nf-interpreter:targets/ESP32/_nanoCLR/nanoFramework.Hardware.Esp32.EspNow/nanoFramework_hardware_esp32_espnow_native.h
+            // keep in sync with nf-interpreter:targets/ESP32/_nanoCLR/nanoFramework.Espnow/nanoFramework_espnow_native.h
             private const int EVENT_ESP32_ESPNOW_DATASENT = 1;
             private const int EVENT_ESP32_ESPNOW_DATARECV = 2;
 

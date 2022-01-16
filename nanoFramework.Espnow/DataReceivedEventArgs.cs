@@ -5,7 +5,7 @@
 
 using System;
 
-namespace nanoFramework.Hardware.Esp32.EspNow
+namespace nanoFramework.Espnow
 {
     /// <summary>
     /// Container for DataReceived event data.

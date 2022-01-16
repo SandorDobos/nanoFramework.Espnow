@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace nanoFramework.Hardware.Esp32.EspNow
+namespace nanoFramework.Espnow
 {
     /// <summary>
     /// EspNow related exception
